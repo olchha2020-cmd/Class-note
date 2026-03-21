@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>クラスサポートノート</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Shippori+Mincho:wght@400;700&display=swap');
+
+:root {
+  --bg:#f7f3ee;--paper:#fffcf8;--paper2:#f2ede6;
+  --ink:#2a2118;--ink2:#6b5e52;--ink3:#9e8e82;
+  --accent:#b5693a;--accent2:#4a7c5e;--accent3:#5a6ea0;
+  --warn:#b54a4a;--border:#ddd4c8;
+  --shadow:0 2px 20px rgba(80,50,20,.10);
+  --shadow2:0 4px 32px rgba(80,50,20,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;}
+
+/* Setup screen */
+#setup-screen{
+  display:flex;align-items:flex-start;justify-content:center;
+  min-height:100vh;padding:16px;overflow-y:auto;
+  position:fixed;inset:0;z-index:999;background:var(--bg);
+}
+#setup-screen.hidden{display:none!important;pointer-events:none;}
+.setup-card{
+  background:var(--paper);border:1.5px solid var(--border);border-radius:16px;
+  padding:24px 20px 40px;max-width:560px;width:100%;box-shadow:var(--shadow2);margin:auto;
+}
+.setup-card h1{font-family:'Shippori Mincho',serif;font-size:1.1rem;font-weight:700;margin-bottom:6px;color:var(--accent);}
+.setup-card p{font-size:0.80rem;color:var(--ink2);line-height:1.8;margin-bottom:14px;}
+.setup-steps{margin-bottom:18px;}
+.step{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px;}
+.step-num{
+  width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:0.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;
+}
+.step-body{font-size:0.83rem;line-height:1.8;color:var(--ink);}
+.step-body strong{color:var(--accent);}
+.step-body code{background:var(--paper2);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:0.85em;}
+
+/* App layout */
+#app{height:100vh;overflow:hidden;display:none;flex-direction:column;-webkit-overflow-scrolling:touch;}
+#app.visible{display:flex;}
+
+.topbar{
+  background:var(--ink);color:#fff;
+  padding:0 20px;height:52px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+}
+.topbar h1{font-family:'Shippori Mincho',serif;font-size:1rem;font-weight:700;flex:1;}
+.sync-status{font-size:0.72rem;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:5px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#6b9;}
+.sync-dot.syncing{background:#d4a83a;animation:pulse 1s infinite;}
+.sync-dot.error{background:#c55;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+.tab-bar{
+  background:var(--paper);border-bottom:1.5px solid var(--border);
+  display:flex;overflow-x:auto;flex-shrink:0;
+}
+.tab{
+  padding:12px 14px;font-size:0.78rem;font-weight:700;color:var(--ink2);
+  cursor:pointer;white-space:nowrap;border-bottom:2.5px solid transparent;
+  transition:all 0.15s;background:none;border-top:none;border-left:none;border-right:none;
+  font-family:inherit;-webkit-tap-highlight-color:rgba(181,105,58,0.15);
+  touch-action:manipulation;min-width:44px;
+}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+
+.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.page{display:none;padding:22px 20px 60px;max-width:820px;margin:0 auto;}
+.page.active{display:block;}
+
+/* Components */
+.card{background:var(--paper);border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.card-title{font-size:0.75rem;font-weight:700;color:var(--ink2);margin-bottom:12px;letter-spacing:.04em;}
+.page-title{font-family:'Shippori Mincho',serif;font-size:1.2rem;font-weight:700;margin-bottom:4px;}
+.page-sub{font-size:0.78rem;color:var(--ink2);margin-bottom:18px;}
+.btn{padding:8px 16px;border:none;border-radius:8px;font-family:inherit;font-size:0.82rem;font-weight:700;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:5px;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover:not(:disabled){background:#9a5528;}
+.btn-primary:disabled{background:#c8b89e;cursor:not-allowed;}
+.btn-secondary{background:var(--paper2);color:var(--ink2);border:1.5px solid var(--border);}
+.btn-secondary:hover{background:var(--border);}
+.btn-green{background:var(--accent2);color:#fff;}
+.btn-sm{padding:5px 11px;font-size:0.75rem;}
+.btn-danger{background:#fce8e8;color:var(--warn);border:1.5px solid #f0c0c0;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-group{margin-bottom:10px;}
+label{font-size:0.76rem;font-weight:700;color:var(--ink2);display:block;margin-bottom:5px;}
+input[type=text],input[type=date],textarea,select{
+  width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:inherit;font-size:0.84rem;color:var(--ink);background:var(--bg);transition:border-color .2s;
+}
+input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+textarea{resize:vertical;min-height:65px;}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b5e52' fill='none' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:0.71rem;font-weight:700;}
+.tag-orange{background:#fdecd8;color:var(--accent);}
+.tag-green{background:#e0f0e8;color:var(--accent2);}
+.tag-blue{background:#e0e8f5;color:var(--accent3);}
+.tag-red{background:#fce8e8;color:var(--warn);}
+.tag-gray{background:var(--paper2);color:var(--ink2);}
+
+/* Student grid */
+.student-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px;}
+.student-card{background:var(--paper);border:1.5px solid var(--border);border-radius:10px;padding:13px;cursor:pointer;transition:all .15s;position:relative;}
+.student-card:hover{border-color:var(--accent);box-shadow:var(--shadow);}
+.student-name{font-weight:700;font-size:0.92rem;margin-bottom:3px;}
+.student-meta{font-size:0.7rem;color:var(--ink2);}
+.student-badge{position:absolute;top:9px;right:9px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.68rem;font-weight:700;display:flex;align-items:center;justify-content:center;}
+
+/* Log */
+.log-item{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:9px;background:var(--paper);}
+.log-header{display:flex;align-items:center;gap:7px;margin-bottom:7px;flex-wrap:wrap;}
+.log-date{font-size:0.73rem;color:var(--ink2);}
+.log-body{font-size:0.84rem;line-height:1.7;}
+.log-response{margin-top:7px;padding:7px 9px;background:var(--paper2);border-radius:6px;font-size:0.78rem;}
+.log-response-label{font-size:0.68rem;font-weight:700;color:var(--accent2);margin-bottom:2px;}
+.stars{color:#d4a83a;}
+
+/* AI */
+.ai-result{background:#fffdf7;border:2px solid #e8d9b0;border-radius:12px;padding:18px;margin-top:14px;}
+.ai-sec{margin-bottom:14px;}
+.ai-sec:last-child{margin-bottom:0;}
+.ai-sec-title{font-size:0.76rem;font-weight:700;color:var(--accent);margin-bottom:5px;}
+.ai-text{font-size:0.84rem;line-height:1.85;white-space:pre-wrap;}
+.ai-obstacle{margin-top:7px;padding:7px 9px;background:#fce8e8;border-radius:6px;font-size:0.76rem;color:var(--warn);}
+.ai-balance{background:#fffdf0;border-radius:8px;padding:13px;border:1px solid #e8d8a0;}
+
+/* Report */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px;margin-bottom:20px;}
+.stat-box{background:var(--paper);border:1.5px solid var(--border);border-radius:10px;padding:13px;text-align:center;}
+.stat-num{font-family:'Shippori Mincho',serif;font-size:1.8rem;font-weight:700;color:var(--accent);}
+.stat-label{font-size:0.69rem;color:var(--ink2);margin-top:2px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;}
+.bar-label{font-size:0.76rem;color:var(--ink2);width:90px;flex-shrink:0;text-align:right;}
+.bar-track{flex:1;height:9px;background:var(--paper2);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;background:var(--accent);border-radius:5px;transition:width .8s ease;}
+.bar-count{font-size:0.73rem;color:var(--ink2);width:22px;flex-shrink:0;}
+.report-h3{font-family:'Shippori Mincho',serif;font-size:0.95rem;font-weight:700;margin-bottom:11px;padding-bottom:5px;border-bottom:2px solid var(--border);}
+
+/* Loading */
+.loading{display:flex;align-items:center;gap:9px;padding:18px;color:var(--ink2);font-size:0.83rem;}
+.spinner{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--paper);border-radius:14px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow2);animation:mIn .2s ease;}
+@keyframes mIn{from{opacity:0;transform:scale(.96) translateY(8px);}to{opacity:1;transform:none;}}
+.modal-header{padding:18px 22px 14px;border-bottom:1.5px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-family:'Shippori Mincho',serif;font-size:1rem;font-weight:700;}
+.modal-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--ink2);}
+.modal-body{padding:18px 22px;}
+.modal-footer{padding:10px 22px 18px;display:flex;gap:9px;justify-content:flex-end;}
+
+.empty{text-align:center;padding:40px 16px;color:var(--ink2);}
+.empty-icon{font-size:2.2rem;margin-bottom:10px;}
+.empty p{font-size:0.82rem;line-height:1.7;}
+.notice{background:#fdf5ee;border:1.5px solid #e8d0b0;border-radius:8px;padding:11px 14px;font-size:0.76rem;line-height:1.7;color:var(--ink2);margin-bottom:14px;}
+</style>
+</head>
+<body>
+
+<!-- ═══ SETUP SCREEN ═══ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>🏫 クラスサポートノート</h1>
+    <p>Googleスプレッドシートと連携して、複数デバイスからデータを共有できます。<br>初回のみ、以下の手順でセットアップしてください。</p>
+    <div class="setup-steps">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Google Apps Scriptを開く</strong><br>別紙の <code>apps_script.gs</code> の内容をコピーして、GoogleスプレッドシートのApps Scriptに貼り付けて保存</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body"><strong>setupSheetsを実行</strong><br>「実行」→「setupSheets」を選んで実行（シートが自動作成されます）</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><strong>ウェブアプリとしてデプロイ</strong><br>「デプロイ」→「新しいデプロイ」→種類：ウェブアプリ→アクセス：<strong>全員</strong>→デプロイ</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-body"><strong>URLを貼り付ける</strong><br>表示されたURLを下のボックスに貼り付けて「接続する」</div></div>
+    </div>
+    <div class="form-group">
+      <label>Apps Script のウェブアプリURL</label>
+      <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <button class="btn btn-primary" onclick="connectSheet()" style="width:100%;padding:14px;font-size:1rem;margin-top:4px;">🔗 接続する</button>
+    <div id="setup-status" style="font-size:0.8rem;color:var(--ink2);margin-top:10px;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<div id="app">
+  <div class="topbar">
+    <h1>🏫 クラスサポートノート</h1>
+    <div class="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">同期済み</span>
+    </div>
+    <button class="btn btn-sm" style="background:rgba(255,255,255,0.1);color:#fff;font-size:0.72rem;" onclick="syncAll()">↻ 同期</button>
+    <button class="btn btn-sm btn-danger" style="font-size:0.7rem;" onclick="resetUrl()">設定変更</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('dashboard')" id="tab-dashboard">🏠 ホーム</button>
+    <button class="tab" onclick="showTab('students')" id="tab-students">👦 児童</button>
+    <button class="tab" onclick="showTab('logs')" id="tab-logs">📝 記録</button>
+    <button class="tab" onclick="showTab('ai')" id="tab-ai">🤖 AI提案</button>
+    <button class="tab" onclick="showTab('report')" id="tab-report">📊 レポート</button>
+    <button class="tab" onclick="showTab('handover')" id="tab-handover">📋 引き継ぎ</button>
+  </div>
+  <div class="content">
+
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">ダッシュボード</div>
+      <div class="page-sub" id="dash-date"></div>
+      <div class="stat-grid" id="dash-stats"></div>
+      <div class="card"><div class="card-title">⚠️ 記録が多い児童</div><div id="dash-highlight"></div></div>
+      <div class="card"><div class="card-title">📅 最近の記録</div><div id="dash-recent"></div></div>
+    </div>
+
+    <!-- Students -->
+    <div class="page" id="page-students">
+      <div class="page-title">児童管理</div>
+      <div class="page-sub">クラスの児童を登録します（記号・ニックネーム推奨）</div>
+      <div style="margin-bottom:14px;"><button class="btn btn-primary" onclick="openStudentModal()">＋ 児童を追加</button></div>
+      <div id="student-grid" class="student-grid"></div>
+      <div id="student-detail"></div>
+    </div>
+
+    <!-- Logs -->
+    <div class="page" id="page-logs">
+      <div class="page-title">記録を追加</div>
+      <div class="page-sub">困り行動・対応メモ・保護者連絡を記録します</div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>対象児童</label><select id="log-student"></select></div>
+          <div class="form-group"><label>日付</label><input type="date" id="log-date"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>種類</label>
+            <select id="log-type">
+              <option value="behavior">⚠️ 困り行動</option>
+              <option value="response">✅ 対応記録</option>
+              <option value="parent">📞 保護者連絡</option>
+              <option value="positive">🌱 良かった点</option>
+            </select>
+          </div>
+          <div class="form-group"><label>場面</label>
+            <select id="log-scene">
+              <option value="">─</option>
+              <option>授業中</option><option>休み時間</option><option>給食</option>
+              <option>掃除</option><option>朝の会・帰りの会</option><option>行事</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>内容</label><textarea id="log-content" placeholder="例：授業中に突然床に寝そべった。声をかけても動かなかった。"></textarea></div>
+        <div class="form-group"><label>対応した内容（任意）</label><textarea id="log-response" placeholder="例：「今日はそこで聞くスタイルだね」と声をかけた。5分後に自分で席に戻った。"></textarea></div>
+        <div class="form-group"><label>効果・反応</label>
+          <select id="log-effect">
+            <option value="">─</option>
+            <option value="5">★★★★★ とても効果的</option>
+            <option value="4">★★★★☆ まあまあ効果的</option>
+            <option value="3">★★★☆☆ 少し効果あり</option>
+            <option value="2">★★☆☆☆ あまり効果なし</option>
+            <option value="1">★☆☆☆☆ 効果なし</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" id="log-save-btn" onclick="saveLog()">💾 保存してスプレッドシートに記録</button>
+      </div>
+      <div class="card"><div class="card-title">最近の記録</div><div id="log-list"></div></div>
+    </div>
+
+    <!-- AI -->
+    <div class="page" id="page-ai">
+      <div class="page-title">AI対応提案</div>
+      <div class="page-sub">児童の過去記録を参照して、3軸で対応策を提案します</div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>対象児童（記録を自動参照）</label><select id="ai-student"><option value="">─ 指定しない ─</option></select></div>
+          <div class="form-group"><label>場面</label><select id="ai-scene"><option value="">─</option><option>授業中</option><option>休み時間</option><option>給食</option><option>掃除</option></select></div>
+        </div>
+        <div class="form-group"><label>困っている行動</label><textarea id="ai-behavior" placeholder="例：授業中に床に転がって動かない。他の児童から苦情が来ている。"></textarea></div>
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="btn btn-sm btn-secondary" onclick="qf('床に転がる・寝そべる')">🛋 床に転がる</button>
+          <button class="btn btn-sm btn-secondary" onclick="qf('突然泣き崩れる・感情爆発')">😭 感情爆発</button>
+          <button class="btn btn-sm btn-secondary" onclick="qf('他の児童への暴言・暴力')">👊 暴言・暴力</button>
+          <button class="btn btn-sm btn-secondary" onclick="qf('授業中の離席・徘徊')">🚶 離席・徘徊</button>
+          <button class="btn btn-sm btn-secondary" onclick="qf('物を勝手に取る・盗む')">🫴 物を取る</button>
+        </div>
+        <button class="btn btn-primary" id="ai-btn" onclick="generateAI()" style="width:100%;">🔍 この子の記録を参照して提案</button>
+      </div>
+      <div id="ai-output"></div>
+    </div>
+
+    <!-- Report -->
+    <div class="page" id="page-report">
+      <div class="page-title">振り返りレポート</div>
+      <div class="page-sub">クラス全体の傾向と推移を確認します</div>
+      <div style="display:flex;gap:9px;margin-bottom:18px;align-items:center;flex-wrap:wrap;">
+        <select id="report-period" onchange="renderReport()" style="width:auto;min-width:150px;">
+          <option value="week">直近1週間</option>
+          <option value="month" selected>直近1ヶ月</option>
+          <option value="all">全期間</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" onclick="generateReportAI()">🤖 AIで総評</button>
+      </div>
+      <div id="report-content"></div>
+    </div>
+
+    <!-- Handover -->
+    <div class="page" id="page-handover">
+      <div class="page-title">引き継ぎ資料</div>
+      <div class="page-sub">学年末の引き継ぎ資料をAIで生成します</div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group"><label>対象児童</label><select id="handover-student"><option value="all">全員まとめて</option></select></div>
+          <div class="form-group"><label>次の担任へのメッセージ（任意）</label><input type="text" id="handover-msg" placeholder="例：丁寧な声かけをお願いします"></div>
+        </div>
+        <button class="btn btn-primary" onclick="generateHandover()">📝 引き継ぎ資料を生成</button>
+      </div>
+      <div id="handover-output"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="student-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="smodal-title">児童を追加</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-sid">
+      <div class="form-group"><label>記号・ニックネーム（本名不要）</label><input type="text" id="s-name" placeholder="例：Aくん、さくら、01番"></div>
+      <div class="form-row">
+        <div class="form-group"><label>性別（任意）</label><select id="s-gender"><option value="">─</option><option>男子</option><option>女子</option><option>その他</option></select></div>
+        <div class="form-group"><label>支援区分（任意）</label><select id="s-support"><option value="">通常</option><option>通級あり</option><option>支援員あり</option><option>SC連携中</option></select></div>
+      </div>
+      <div class="form-group"><label>特性・困り行動メモ</label><textarea id="s-note" placeholder="例：感情コントロールが難しい。床に転がることがある。愛着障害疑い。"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveStudent()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──
+const GAS_KEY = 'classNote_gasUrl';
+const DATA_KEY = 'classNote_data_v3';
+let GAS_URL = localStorage.getItem(GAS_KEY) || 'https://script.google.com/macros/s/AKfycbxU3BcAlU33X_retkCyBh3lBU-Bvkr2tvMvU2dI0ItEN2GemtthsxtiFTAbdqau-ab2iw/exec';
+let state = { students: [], logs: [] };
+let syncing = false;
+
+// ── Setup ──
+async function connectSheet() {
+  const url = document.getElementById('setup-url').value.trim();
+  if (!url.includes('script.google.com')) {
+    document.getElementById('setup-status').textContent = '⚠️ URLの形式が正しくありません';
+    return;
+  }
+  GAS_URL = url;
+  document.getElementById("setup-status").textContent = "接続中…";
+  try {
+    const res = await gasGet('getAll');
+    GAS_URL = url;
+    localStorage.setItem(GAS_KEY, url);
+    state = { students: res.students || [], logs: res.logs || [] };
+    saveLocal();
+    startApp();
+  } catch(e) {
+    document.getElementById('setup-status').textContent = '❌ 接続失敗: ' + e.message;
+  }
+}
+
+function resetUrl() {
+  if (!confirm('接続設定をリセットしますか？')) return;
+  localStorage.removeItem(GAS_KEY);
+  location.reload();
+}
+
+// ── GAS API ──
+function buildUrl(action, params = {}) {
+  const base = GAS_URL.split('?')[0];
+  const p = new URLSearchParams({ action, ...params });
+  return base + '?' + p.toString();
+}
+
+async function gasGet(action, params = {}) {
+  const url = buildUrl(action, params);
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+async function gasPost(action, params = {}) {
+  const flat = {};
+  Object.entries(params).forEach(([k,v]) => { flat[k] = typeof v === 'object' ? JSON.stringify(v) : v; });
+  const url = buildUrl(action, flat);
+  const res = await fetch(url);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// ── Sync ──
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  dot.className = 'sync-dot' + (status === 'syncing' ? ' syncing' : status === 'error' ? ' error' : '');
+  label.textContent = status === 'syncing' ? '同期中…' : status === 'error' ? 'エラー' : '同期済み';
+}
+
+async function syncAll() {
+  if (syncing) return;
+  syncing = true; setSyncStatus('syncing');
+  try {
+    const res = await gasGet('getAll');
+    state = { students: res.students || [], logs: res.logs || [] };
+    saveLocal(); updateAllUI(); setSyncStatus('ok');
+  } catch(e) {
+    setSyncStatus('error'); console.error(e);
+  }
+  syncing = false;
+}
+
+// ── Local cache ──
+function saveLocal() { try { localStorage.setItem(DATA_KEY, JSON.stringify(state)); } catch(e){} }
+function loadLocal() { try { const d = localStorage.getItem(DATA_KEY); if(d) state = JSON.parse(d); } catch(e){} }
+
+// ── Start app ──
+function startApp() {
+  const ss = document.getElementById('setup-screen'); ss.style.display='none'; ss.classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  updateAllUI();
+  // Auto sync every 60s
+  setInterval(syncAll, 60000);
+}
+
+function updateAllUI() {
+  updateSelects();
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  const id = active.id.replace('page-', '');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'students') renderStudents();
+  if (id === 'logs') renderLogList();
+  if (id === 'report') renderReport();
+}
+
+// ── Nav ──
+function showTab(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'students') renderStudents();
+  if (id === 'logs') { renderLogPage(); renderLogList(); }
+  if (id === 'ai') updateSelects();
+  if (id === 'report') renderReport();
+  if (id === 'handover') renderHandover();
+}
+
+// ── Modal ──
+function openStudentModal(id) {
+  document.getElementById('smodal-title').textContent = id ? '児童を編集' : '児童を追加';
+  document.getElementById('edit-sid').value = id || '';
+  const s = id ? state.students.find(s => s.id === id) : null;
+  document.getElementById('s-name').value = s ? s.name : '';
+  document.getElementById('s-gender').value = s ? s.gender||'' : '';
+  document.getElementById('s-support').value = s ? s.support||'' : '';
+  document.getElementById('s-note').value = s ? s.note||'' : '';
+  document.getElementById('student-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('student-modal').classList.remove('open'); }
+
+// ── Students ──
+async function saveStudent() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { alert('名前・記号を入力してください'); return; }
+  const editId = document.getElementById('edit-sid').value;
+  const data = { id: editId || 'S'+Date.now(), name, gender: document.getElementById('s-gender').value, support: document.getElementById('s-support').value, note: document.getElementById('s-note').value };
+  setSyncStatus('syncing');
+  try {
+    await gasPost('saveStudent', { data });
+    if (editId) { const i = state.students.findIndex(s=>s.id===editId); if(i>=0) state.students[i] = data; }
+    else state.students.push(data);
+    saveLocal(); updateSelects(); renderStudents(); closeModal(); setSyncStatus('ok');
+  } catch(e) { setSyncStatus('error'); alert('保存失敗: '+e.message); }
+}
+
+async function deleteStudent(id) {
+  if (!confirm('この児童のデータをすべて削除しますか？')) return;
+  setSyncStatus('syncing');
+  try {
+    await gasPost('deleteStudent', { id });
+    state.students = state.students.filter(s=>s.id!==id);
+    state.logs = state.logs.filter(l=>l.studentId!==id);
+    saveLocal(); updateSelects(); renderStudents(); document.getElementById('student-detail').innerHTML=''; setSyncStatus('ok');
+  } catch(e) { setSyncStatus('error'); alert('削除失敗: '+e.message); }
+}
+
+function renderStudents() {
+  const grid = document.getElementById('student-grid');
+  if (!state.students.length) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><p>まだ登録されていません</p></div>'; return; }
+  grid.innerHTML = state.students.map(s => {
+    const cnt = state.logs.filter(l=>l.studentId===s.id).length;
+    return `<div class="student-card" onclick="showStudentDetail('${s.id}')">
+      <div class="student-name">${esc(s.name)}</div>
+      <div class="student-meta">${s.gender||''}${s.support?' / '+s.support:''}</div>
+      ${cnt?`<div class="student-badge">${cnt}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function showStudentDetail(id) {
+  const s = state.students.find(s=>s.id===id);
+  if (!s) return;
+  const logs = state.logs.filter(l=>l.studentId===id).sort((a,b)=>b.date.localeCompare(a.date));
+  document.getElementById('student-detail').innerHTML = `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+        <div><div style="font-family:'Shippori Mincho',serif;font-size:1.1rem;font-weight:700;">${esc(s.name)}</div>
+        <div style="font-size:0.74rem;color:var(--ink2);">${s.gender||''} ${s.support||''}</div></div>
+        <div style="display:flex;gap:7px;">
+          <button class="btn btn-secondary btn-sm" onclick="openStudentModal('${id}')">✏️ 編集</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${id}')">削除</button>
+        </div>
+      </div>
+      ${s.note?`<div style="background:var(--paper2);border-radius:8px;padding:9px 11px;font-size:0.82rem;line-height:1.7;margin-bottom:12px;">${esc(s.note)}</div>`:''}
+      <div class="card-title">記録（${logs.length}件）</div>
+      ${logs.length ? logs.map(renderLogItem).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>'}
+    </div>`;
+}
+
+// ── Logs ──
+function renderLogPage() {
+  document.getElementById('log-date').value = today();
+  const sel = document.getElementById('log-student');
+  sel.innerHTML = '<option value="">─ 選択 ─</option>' + state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+}
+
+async function saveLog() {
+  const studentId = document.getElementById('log-student').value;
+  const content = document.getElementById('log-content').value.trim();
+  if (!studentId || !content) { alert('児童と内容を入力してください'); return; }
+  const data = {
+    id: 'L'+Date.now(), studentId,
+    date: document.getElementById('log-date').value || today(),
+    type: document.getElementById('log-type').value,
+    scene: document.getElementById('log-scene').value,
+    content,
+    response: document.getElementById('log-response').value.trim(),
+    effect: document.getElementById('log-effect').value,
+  };
+  const btn = document.getElementById('log-save-btn');
+  btn.disabled = true; btn.textContent = '保存中…';
+  setSyncStatus('syncing');
+  try {
+    await gasPost('saveLog', { data });
+    state.logs.push(data); saveLocal();
+    ['log-content','log-response'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('log-effect').value='';
+    renderLogList(); setSyncStatus('ok'); alert('✅ 保存しました');
+  } catch(e) { setSyncStatus('error'); alert('保存失敗: '+e.message); }
+  btn.disabled = false; btn.textContent = '💾 保存してスプレッドシートに記録';
+}
+
+function renderLogList() {
+  const list = document.getElementById('log-list');
+  const recent = [...state.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20);
+  list.innerHTML = recent.length ? recent.map(renderLogItem).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録がありません</div>';
+}
+
+function renderLogItem(l) {
+  const s = state.students.find(s=>s.id===l.studentId);
+  const tm = {behavior:'⚠️ 困り行動',response:'✅ 対応',parent:'📞 保護者',positive:'🌱 良かった点'};
+  const tc = {behavior:'tag-red',response:'tag-green',parent:'tag-blue',positive:'tag-green'};
+  const stars = l.effect ? '★'.repeat(+l.effect)+'☆'.repeat(5-+l.effect) : '';
+  return `<div class="log-item">
+    <div class="log-header">
+      <span class="log-date">${l.date||''}</span>
+      <span class="tag ${tc[l.type]||'tag-gray'}">${tm[l.type]||l.type}</span>
+      ${s?`<span class="tag tag-orange">${esc(s.name)}</span>`:''}
+      ${l.scene?`<span class="tag tag-gray">${esc(l.scene)}</span>`:''}
+    </div>
+    <div class="log-body">${esc(l.content)}</div>
+    ${l.response?`<div class="log-response"><div class="log-response-label">対応内容</div>${esc(l.response)}${stars?`<div class="stars">${stars}</div>`:''}</div>`:''}
+  </div>`;
+}
+
+// ── AI ──
+function qf(text) { document.getElementById('ai-behavior').value = text; }
+
+async function generateAI() {
+  const behavior = document.getElementById('ai-behavior').value.trim();
+  if (!behavior) { alert('行動を入力してください'); return; }
+  const studentId = document.getElementById('ai-student').value;
+  const scene = document.getElementById('ai-scene').value;
+  let ctx = '';
+  if (studentId) {
+    const s = state.students.find(s=>s.id===studentId);
+    const logs = state.logs.filter(l=>l.studentId===studentId).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+    if (s) ctx = `\n【対象児童】名前:${s.name} 特性:${s.note||'なし'}\n【過去記録(最新10件)】\n`+logs.map(l=>`${l.date}[${l.type}]${l.content}${l.response?' →'+l.response:''}${l.effect?' ★'+l.effect:''}`).join('\n');
+  }
+  const btn = document.getElementById('ai-btn');
+  btn.disabled = true; btn.textContent = '生成中…';
+  document.getElementById('ai-output').innerHTML = '<div class="loading"><div class="spinner"></div>過去記録を参照して提案を生成中…</div>';
+
+  const prompt = `愛着障害・トラウマインフォームドケアに詳しい小学校の教育支援専門家として、以下の困り行動への対応を3軸で提案してください。
+【困り行動】${behavior}【場面】${scene||'不明'}${ctx}
+JSON形式のみで返答:{
+"analysis":"愛着障害の観点からの行動の意味（3文以内）",
+"past_pattern":"${studentId?'過去記録から見えるパターン（2文）':'（児童未指定）'}",
+"theory":"理想的な対応（具体的セリフ含む2例）",
+"obstacle":"理想的対応の現実の障壁",
+"practical":"クラス全体への影響を考えた現実的対応（2〜3例）",
+"steps":"今日から試せる3ステップ",
+"self_care":"担任へのひとこと（責めすぎないための言葉）",
+"balance":"3軸を統合した落としどころ（3文）"
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const text = data.content.map(i=>i.text||'').join('');
+    const r = JSON.parse(text.replace(/```json|```/g,'').trim());
+    const sName = studentId ? (state.students.find(s=>s.id===studentId)||{}).name : null;
+    document.getElementById('ai-output').innerHTML = `
+      <div class="ai-result">
+        ${sName?`<div style="margin-bottom:12px;"><span class="tag tag-orange">📌 ${esc(sName)} の記録を参照</span></div>`:''}
+        <div class="ai-sec"><div class="ai-sec-title">📚 行動の意味（愛着理論）</div><div class="ai-text">${esc(r.analysis)}</div></div>
+        ${r.past_pattern&&r.past_pattern!=='（児童未指定）'?`<div class="ai-sec"><div class="ai-sec-title">🗂 過去記録のパターン</div><div class="ai-text">${esc(r.past_pattern)}</div></div>`:''}
+        <div class="ai-sec"><div class="ai-sec-title">📖 理想的な対応</div><div class="ai-text">${esc(r.theory)}</div><div class="ai-obstacle">⚠️ 現実の障壁：${esc(r.obstacle)}</div></div>
+        <div class="ai-sec"><div class="ai-sec-title">🏫 現実的な対応</div><div class="ai-text">${esc(r.practical)}</div></div>
+        <div class="ai-sec"><div class="ai-sec-title">👩‍🏫 今日から試せる3ステップ</div><div class="ai-text">${esc(r.steps)}</div></div>
+        <div class="ai-sec"><div class="ai-sec-title">💛 担任の先生へ</div><div class="ai-text">${esc(r.self_care)}</div></div>
+        <div class="ai-sec ai-balance"><div class="ai-sec-title">⚖️ 落としどころ</div><div class="ai-text">${esc(r.balance)}</div></div>
+      </div>`;
+  } catch(e) {
+    document.getElementById('ai-output').innerHTML = `<div style="color:var(--warn);font-size:0.83rem;padding:12px;">エラー: ${e.message}</div>`;
+  }
+  btn.disabled = false; btn.textContent = '🔍 この子の記録を参照して提案';
+}
+
+// ── Report ──
+function renderReport() {
+  const period = document.getElementById('report-period').value;
+  const cutoff = getCutoff(period);
+  const logs = state.logs.filter(l=>!cutoff||l.date>=cutoff);
+  const bLogs = logs.filter(l=>l.type==='behavior');
+  const rLogs = logs.filter(l=>l.type==='response');
+  const avgE = rLogs.filter(l=>l.effect).reduce((a,l,_,arr)=>a+(+l.effect)/arr.length,0);
+  const ranking = state.students.map(s=>({s,cnt:logs.filter(l=>l.studentId===s.id&&l.type==='behavior').length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt).slice(0,5);
+  const maxR = ranking[0]?.cnt||1;
+  const kw = ['床','泣','暴言','離席','盗','叫','感情'];
+  const kwC = {}; kw.forEach(k=>{kwC[k]=bLogs.filter(l=>l.content.includes(k)).length;});
+  const maxK = Math.max(1,...Object.values(kwC));
+  document.getElementById('report-content').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-box"><div class="stat-num">${logs.length}</div><div class="stat-label">総記録数</div></div>
+      <div class="stat-box"><div class="stat-num">${bLogs.length}</div><div class="stat-label">困り行動</div></div>
+      <div class="stat-box"><div class="stat-num">${rLogs.length}</div><div class="stat-label">対応記録</div></div>
+      <div class="stat-box"><div class="stat-num">${avgE?avgE.toFixed(1):'─'}</div><div class="stat-label">平均効果★</div></div>
+    </div>
+    <div class="card"><div class="report-h3">🏆 記録が多い児童</div>
+      ${ranking.length?ranking.map((x,i)=>`<div class="bar-row"><div class="bar-label">${i+1}. ${esc(x.s.name)}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.cnt/maxR*100)}%"></div></div><div class="bar-count">${x.cnt}</div></div>`).join(''):'<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>'}
+    </div>
+    <div class="card"><div class="report-h3">🔑 キーワード別傾向</div>
+      ${Object.entries(kwC).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="bar-row"><div class="bar-label">「${k}」含む</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/maxK*100)}%"></div></div><div class="bar-count">${v}</div></div>`).join('')||'<div style="color:var(--ink2);font-size:0.8rem;">困り行動の記録なし</div>'}
+    </div>
+    <div id="report-ai-sec" style="display:none;"><div class="card"><div class="report-h3">🤖 AIによる総評</div><div id="report-ai-text"></div></div></div>`;
+}
+
+async function generateReportAI() {
+  const period = document.getElementById('report-period').value;
+  const cutoff = getCutoff(period);
+  const logs = state.logs.filter(l=>(!cutoff||l.date>=cutoff)&&l.type==='behavior').slice(0,20);
+  const summary = logs.map(l=>{const s=state.students.find(s=>s.id===l.studentId);return `${l.date} ${s?s.name:'不明'} ${l.scene||''} ${l.content}`;}).join('\n');
+  document.getElementById('report-ai-sec').style.display='';
+  document.getElementById('report-ai-text').innerHTML = '<div class="loading"><div class="spinner"></div>生成中…</div>';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:`2年生クラスの困り行動記録をもとに、愛着障害の観点からクラス全体の傾向・注目点・今後の方針を200〜300字でまとめてください。担任への励ましの言葉も。\n\n${summary}`}]})});
+    const data = await res.json();
+    document.getElementById('report-ai-text').innerHTML = `<div style="font-size:0.84rem;line-height:1.9;white-space:pre-wrap;">${esc(data.content.map(i=>i.text||'').join(''))}</div>`;
+  } catch(e) { document.getElementById('report-ai-text').innerHTML = `<span style="color:var(--warn)">${e.message}</span>`; }
+}
+
+// ── Handover ──
+function renderHandover() {
+  const sel = document.getElementById('handover-student');
+  sel.innerHTML = '<option value="all">全員まとめて</option>' + state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+}
+
+async function generateHandover() {
+  const studentId = document.getElementById('handover-student').value;
+  const msg = document.getElementById('handover-msg').value.trim();
+  const targets = studentId==='all' ? state.students : state.students.filter(s=>s.id===studentId);
+  const profileText = targets.map(s=>{
+    const logs = state.logs.filter(l=>l.studentId===s.id).sort((a,b)=>b.date.localeCompare(a.date));
+    return `【${s.name}】特性:${s.note||'なし'} 記録${logs.length}件\n`+logs.slice(0,5).map(l=>`  ${l.date}[${l.type}]${l.content}${l.response?' →'+l.response:''}`).join('\n');
+  }).join('\n\n');
+  document.getElementById('handover-output').innerHTML = '<div class="loading"><div class="spinner"></div>生成中…</div>';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`小学2年担任として次の担任への引き継ぎ資料を作成。各児童について「特性・傾向」「効果的だった対応」「注意場面」「次担任へのアドバイス」の4項目で簡潔に。${msg?'\n追記:'+msg:''}\n\n${profileText}`}]})});
+    const data = await res.json();
+    document.getElementById('handover-output').innerHTML = `<div class="card" style="margin-top:14px;"><div class="card-title">📋 生成された引き継ぎ資料</div><div style="font-size:0.85rem;line-height:1.9;white-space:pre-wrap;">${esc(data.content.map(i=>i.text||'').join(''))}</div></div>`;
+  } catch(e) { document.getElementById('handover-output').innerHTML = `<span style="color:var(--warn)">${e.message}</span>`; }
+}
+
+// ── Dashboard ──
+function renderDashboard() {
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${state.students.length}</div><div class="stat-label">登録児童数</div></div>
+    <div class="stat-box"><div class="stat-num">${state.logs.length}</div><div class="stat-label">総記録数</div></div>
+    <div class="stat-box"><div class="stat-num">${state.logs.filter(l=>l.date>=thisMonth()).length}</div><div class="stat-label">今月の記録</div></div>
+    <div class="stat-box"><div class="stat-num">${state.logs.filter(l=>l.type==='response'&&+l.effect>=4).length}</div><div class="stat-label">効果的な対応★4↑</div></div>`;
+  const ranking = state.students.map(s=>({s,cnt:state.logs.filter(l=>l.studentId===s.id&&l.type==='behavior').length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt).slice(0,3);
+  document.getElementById('dash-highlight').innerHTML = ranking.length ? ranking.map(({s,cnt})=>`
+    <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);">
+      <div style="font-weight:700;">${esc(s.name)}</div>
+      <div class="tag tag-red">困り行動 ${cnt}件</div>
+      <button class="btn btn-sm btn-secondary" style="margin-left:auto;" onclick="showTab('ai');document.getElementById('ai-student').value='${s.id}'">AI提案</button>
+    </div>`).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>';
+  const recent = [...state.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  document.getElementById('dash-recent').innerHTML = recent.length ? recent.map(renderLogItem).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録がありません</div>';
+}
+
+// ── Helpers ──
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function today(){return new Date().toISOString().slice(0,10);}
+function thisMonth(){return new Date().toISOString().slice(0,7)+'-01';}
+function getCutoff(p){const d=new Date();if(p==='week'){d.setDate(d.getDate()-7);return d.toISOString().slice(0,10);}if(p==='month'){d.setMonth(d.getMonth()-1);return d.toISOString().slice(0,10);}return null;}
+function updateSelects(){
+  ['log-student','ai-student'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML='<option value="">─ 選択 ─</option>'+state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  });
+  const hs=document.getElementById('handover-student');
+  if(hs)hs.innerHTML='<option value="all">全員まとめて</option>'+state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+}
+
+// ── Init ──
+loadLocal();
+if (GAS_URL) {
+  startApp();
+  syncAll();
+}
+</script>
+</body>
+</html>
