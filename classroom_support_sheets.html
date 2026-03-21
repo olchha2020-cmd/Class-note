@@ -390,8 +390,9 @@ function buildUrl(action, params = {}) {
 
 async function gasGet(action, params = {}) {
   const url = buildUrl(action, params);
-  const res = await fetch(url);
-  const data = await res.json();
+  const res = await fetch(url, {redirect:'follow',mode:'cors'});
+  const text = await res.text();
+  const data = JSON.parse(text);
   if (data.error) throw new Error(data.error);
   return data;
 }
@@ -400,8 +401,9 @@ async function gasPost(action, params = {}) {
   const flat = {};
   Object.entries(params).forEach(([k,v]) => { flat[k] = typeof v === 'object' ? JSON.stringify(v) : v; });
   const url = buildUrl(action, flat);
-  const res = await fetch(url);
-  const data = await res.json();
+  const res = await fetch(url, {redirect:'follow',mode:'cors'});
+  const text = await res.text();
+  const data = JSON.parse(text);
   if (data.error) throw new Error(data.error);
   return data;
 }
