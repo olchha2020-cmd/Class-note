@@ -607,11 +607,7 @@ async function generateAI() {
   if (studentId) {
     const s = state.students.find(s=>s.id===studentId);
     const logs = state.logs.filter(l=>l.studentId===studentId).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
-    if (s) ctx = `
-【対象児童】名前:${s.name} 特性:${s.note||'なし'}
-【過去記録(最新10件)】
-`+logs.map(l=>`${l.date}[${l.type}]${l.content}${l.response?' →'+l.response:''}${l.effect?' ★'+l.effect:''}`).join('
-');
+    if (s) ctx = '\n【対象児童】名前:'+s.name+' 特性:'+(s.note||'なし')+'\n【過去記録(最新10件)】\n'+logs.map(l=>l.date+'['+l.type+']'+l.content+(l.response?' →'+l.response:'')+(l.effect?' ★'+l.effect:'')).join('\n');
   }
   const btn = document.getElementById('ai-btn');
   btn.disabled = true; btn.textContent = '生成中…';
