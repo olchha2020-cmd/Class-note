@@ -654,8 +654,7 @@ async function generateHandover() {
   const targets = studentId==='all' ? state.students : state.students.filter(s=>s.id===studentId);
   const profileText = targets.map(s=>{
     const logs = state.logs.filter(l=>l.studentId===s.id).sort((a,b)=>b.date.localeCompare(a.date));
-    return '【'+s.name+'】特性:'+(s.note||'なし')+' 記録'+logs.length+'件\n'+logs.slice(0,5).map(function(l){return '  '+l.date+'['+l.type+']'+l.content+(l.response?' →'+l.response:'');}).join('\n');
-  }).join('\n\n');
+    return '【'+s.name+'】特性:'+(s.note||'なし')+' 記録'+logs.length+'件\n'+logs.slice(0,5).map(function(l){return '  '+l.date+'['+l.type+']'+l.content+(l.response?' →'+l.response:'');}).join('\n');}).join('\n\n');
   document.getElementById('handover-output').innerHTML = '<div class="loading"><div class="spinner"></div>生成中…</div>';
   try {
     const res = await gasGet('aiHandover', { profile: profileText, msg: msg||'' });
