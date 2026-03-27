@@ -180,7 +180,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     </div>
     <div class="form-group">
       <label>Apps Script のウェブアプリURL</label>
-      <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/AKfycbwh8ESZHvySN6sLPQ4p3QNT1fQ0ESqkjqdWvXahYSbn-HDYNzPcxlYP4iPcTZyRVH9u/exec">
+      <input type="text" id="setup-url" placeholder="https://script.google.com/macros/s/...">
     </div>
     <button class="btn btn-primary" onclick="connectSheet()" style="width:100%;padding:14px;font-size:1rem;margin-top:4px;">🔗 接続する</button>
     <div id="setup-status" style="font-size:0.8rem;color:var(--ink2);margin-top:10px;text-align:center;"></div>
@@ -541,7 +541,7 @@ function showStudentDetail(id) {
 function renderLogPage() {
   document.getElementById('log-date').value = today();
   const sel = document.getElementById('log-student');
-  sel.innerHTML = '<option value="">─ 選択 ─</option>' + state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  sel.innerHTML = '<option value="">─ 選択 ─</option>' + state.students.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('');
 }
 
 async function saveLog() {
@@ -626,7 +626,7 @@ async function generateAI() {
     aih+='</div>';
     document.getElementById('ai-output').innerHTML = aih;
   } catch(e) {
-    document.getElementById('ai-output').innerHTML = `<div style="color:var(--warn);font-size:0.83rem;padding:12px;">エラー: ${e.message}</div>`;
+    document.getElementById('ai-output').innerHTML = '<div style="color:var(--warn);font-size:0.83rem;padding:12px;">エラー: '+e.message+'</div>';
   }
   btn.disabled = false; btn.textContent = '🔍 この子の記録を参照して提案';
 }
@@ -634,20 +634,18 @@ async function generateReportAI() {
   const period = document.getElementById('report-period').value;
   const cutoff = getCutoff(period);
   const logs = state.logs.filter(l=>(!cutoff||l.date>=cutoff)&&l.type==='behavior').slice(0,20);
-  const summary = logs.map(l=>{const s=state.students.find(s=>s.id===l.studentId);return `${l.date} ${s?s.name:'不明'} ${l.scene||''} ${l.content}`;}).join('
-');
-  document.getElementById('report-ai-sec').style.display='';
+  const summary = logs.map(function(l){var s=state.students.find(function(s2){return s2.id===l.studentId;});return l.date+' '+(s?s.name:'不明')+' '+(l.scene||'')+' '+l.content;}).join('\n');document.getElementById('report-ai-sec').style.display='';
   document.getElementById('report-ai-text').innerHTML = '<div class="loading"><div class="spinner"></div>生成中…</div>';
   try {
     const res = await gasGet('aiReport', { summary });
     if (!res.ok) throw new Error(res.error||'エラー');
-    document.getElementById('report-ai-text').innerHTML = `<div style="font-size:0.84rem;line-height:1.9;white-space:pre-wrap;">${esc(res.result)}</div>`;
-  } catch(e) { document.getElementById('report-ai-text').innerHTML = `<span style="color:var(--warn)">${e.message}</span>`; }
+    document.getElementById('report-ai-text').innerHTML = '<div style="font-size:0.84rem;line-height:1.9;white-space:pre-wrap;">'+esc(res.result)+'</div>';
+  } catch(e) { document.getElementById('report-ai-text').innerHTML = '<span style="color:var(--warn)">'+e.message+'</span>'; }
 }
 // ── Handover ──
 function renderHandover() {
   const sel = document.getElementById('handover-student');
-  sel.innerHTML = '<option value="all">全員まとめて</option>' + state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  sel.innerHTML = '<option value="all">全員まとめて</option>' + state.students.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('');
 }
 
 async function generateHandover() {
@@ -656,18 +654,12 @@ async function generateHandover() {
   const targets = studentId==='all' ? state.students : state.students.filter(s=>s.id===studentId);
   const profileText = targets.map(s=>{
     const logs = state.logs.filter(l=>l.studentId===s.id).sort((a,b)=>b.date.localeCompare(a.date));
-    return `【${s.name}】特性:${s.note||'なし'} 記録${logs.length}件
-`+logs.slice(0,5).map(l=>`  ${l.date}[${l.type}]${l.content}${l.response?' →'+l.response:''}`).join('
-');
-  }).join('
-
-');
-  document.getElementById('handover-output').innerHTML = '<div class="loading"><div class="spinner"></div>生成中…</div>';
+    return '【'+s.name+'】特性:'+(s.note||'なし')+' 記録'+logs.length+'件\n'+logs.slice(0,5).map(function(l){return '  '+l.date+'['+l.type+']'+l.content+(l.response?' →'+l.response:'');}).join('\n');s="loading"><div class="spinner"></div>生成中…</div>';
   try {
     const res = await gasGet('aiHandover', { profile: profileText, msg: msg||'' });
     if (!res.ok) throw new Error(res.error||'エラー');
-    document.getElementById('handover-output').innerHTML = `<div class="card" style="margin-top:14px;"><div class="card-title">📋 生成された引き継ぎ資料</div><div style="font-size:0.85rem;line-height:1.9;white-space:pre-wrap;">${esc(res.result)}</div></div>`;
-  } catch(e) { document.getElementById('handover-output').innerHTML = `<span style="color:var(--warn)">${e.message}</span>`; }
+    document.getElementById('handover-output').innerHTML = '<div class="card" style="margin-top:14px;"><div class="card-title">📋 生成された引き継ぎ資料</div><div style="font-size:0.85rem;line-height:1.9;white-space:pre-wrap;">'+esc(res.result)+'</div></div>';
+  } catch(e) { document.getElementById('handover-output').innerHTML = '<span style="color:var(--warn)">'+e.message+'</span>'; }
 }
 // ── Dashboard ──
 function renderDashboard() {
@@ -698,10 +690,10 @@ function getCutoff(p){const d=new Date();if(p==='week'){d.setDate(d.getDate()-7)
 function updateSelects(){
   ['log-student','ai-student'].forEach(id=>{
     const el=document.getElementById(id);if(!el)return;
-    el.innerHTML='<option value="">─ 選択 ─</option>'+state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+    el.innerHTML='<option value="">─ 選択 ─</option>'+state.students.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('');
   });
   const hs=document.getElementById('handover-student');
-  if(hs)hs.innerHTML='<option value="all">全員まとめて</option>'+state.students.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+  if(hs)hs.innerHTML='<option value="all">全員まとめて</option>'+state.students.map(function(s){return '<option value="'+s.id+'">'+esc(s.name)+'</option>';}).join('');
 }
 
 // ── Init ──
