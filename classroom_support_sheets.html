@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!-- v20260327_151124 -->
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -511,11 +511,10 @@ function renderStudents() {
   if (!state.students.length) { grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><p>まだ登録されていません</p></div>'; return; }
   grid.innerHTML = state.students.map(s => {
     const cnt = state.logs.filter(l=>l.studentId===s.id).length;
-    return `<div class="student-card" onclick="showStudentDetail('${s.id}')">
-      <div class="student-name">${esc(s.name)}</div>
-      <div class="student-meta">${s.gender||''}${s.support?' / '+s.support:''}</div>
-      ${cnt?`<div class="student-badge">${cnt}</div>`:''}
-    </div>`;
+    var sc='<div class="student-card" onclick="showStudentDetail(\''+s.id+'\')"><div class="student-name">'+esc(s.name)+'</div><div class="student-meta">'+(s.gender||'')+(s.support?' / '+s.support:'')+'</div>';
+    if(cnt) sc+='<div class="student-badge">'+cnt+'</div>';
+    sc+='</div>';
+    return sc;
   }).join('');
 }
 
@@ -523,20 +522,19 @@ function showStudentDetail(id) {
   const s = state.students.find(s=>s.id===id);
   if (!s) return;
   const logs = state.logs.filter(l=>l.studentId===id).sort((a,b)=>b.date.localeCompare(a.date));
-  document.getElementById('student-detail').innerHTML = `
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
-        <div><div style="font-family:'Shippori Mincho',serif;font-size:1.1rem;font-weight:700;">${esc(s.name)}</div>
-        <div style="font-size:0.74rem;color:var(--ink2);">${s.gender||''} ${s.support||''}</div></div>
-        <div style="display:flex;gap:7px;">
-          <button class="btn btn-secondary btn-sm" onclick="openStudentModal('${id}')">✏️ 編集</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${id}')">削除</button>
-        </div>
-      </div>
-      ${s.note?`<div style="background:var(--paper2);border-radius:8px;padding:9px 11px;font-size:0.82rem;line-height:1.7;margin-bottom:12px;">${esc(s.note)}</div>`:''}
-      <div class="card-title">記録（${logs.length}件）</div>
-      ${logs.length ? logs.map(renderLogItem).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>'}
-    </div>`;
+  var detailHtml = '<div class="card">';
+  detailHtml += '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">';
+  detailHtml += '<div><div style="font-family:\'Shippori Mincho\',serif;font-size:1.1rem;font-weight:700;">'+esc(s.name)+'</div>';
+  detailHtml += '<div style="font-size:0.74rem;color:var(--ink2);">'+(s.gender||'')+' '+(s.support||'')+'</div></div>';
+  detailHtml += '<div style="display:flex;gap:7px;">';
+  detailHtml += '<button class="btn btn-secondary btn-sm" onclick="openStudentModal(\''+id+'\')">✏️ 編集</button>';
+  detailHtml += '<button class="btn btn-danger btn-sm" onclick="deleteStudent(\''+id+'\')">削除</button>';
+  detailHtml += '</div></div>';
+  if(s.note) detailHtml += '<div style="background:var(--paper2);border-radius:8px;padding:9px 11px;font-size:0.82rem;line-height:1.7;margin-bottom:12px;">'+esc(s.note)+'</div>';
+  detailHtml += '<div class="card-title">記録（'+logs.length+'件）</div>';
+  detailHtml += logs.length ? logs.map(renderLogItem).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>';
+  detailHtml += '</div>';
+  document.getElementById('student-detail').innerHTML = detailHtml;
 }
 
 // ── Logs ──
@@ -583,16 +581,15 @@ function renderLogItem(l) {
   const tm = {behavior:'⚠️ 困り行動',response:'✅ 対応',parent:'📞 保護者',positive:'🌱 良かった点'};
   const tc = {behavior:'tag-red',response:'tag-green',parent:'tag-blue',positive:'tag-green'};
   const stars = l.effect ? '★'.repeat(+l.effect)+'☆'.repeat(5-+l.effect) : '';
-  return `<div class="log-item">
-    <div class="log-header">
-      <span class="log-date">${l.date||''}</span>
-      <span class="tag ${tc[l.type]||'tag-gray'}">${tm[l.type]||l.type}</span>
-      ${s?`<span class="tag tag-orange">${esc(s.name)}</span>`:''}
-      ${l.scene?`<span class="tag tag-gray">${esc(l.scene)}</span>`:''}
-    </div>
-    <div class="log-body">${esc(l.content)}</div>
-    ${l.response?`<div class="log-response"><div class="log-response-label">対応内容</div>${esc(l.response)}${stars?`<div class="stars">${stars}</div>`:''}</div>`:''}
-  </div>`;
+  var h='<div class="log-item"><div class="log-header">';
+  h+='<span class="log-date">'+(l.date||'')+'</span>';
+  h+='<span class="tag '+(tc[l.type]||'tag-gray')+'">'+(tm[l.type]||l.type)+'</span>';
+  if(s) h+='<span class="tag tag-orange">'+esc(s.name)+'</span>';
+  if(l.scene) h+='<span class="tag tag-gray">'+esc(l.scene)+'</span>';
+  h+='</div><div class="log-body">'+esc(l.content)+'</div>';
+  if(l.response){h+='<div class="log-response"><div class="log-response-label">対応内容</div>'+esc(l.response);if(stars)h+='<div class="stars">'+stars+'</div>';h+='</div>';}
+  h+='</div>';
+  return h;
 }
 
 // ── AI ──
@@ -617,17 +614,17 @@ async function generateAI() {
     if (!res.ok) throw new Error(res.error||'エラー');
     const r = res.result;
     const sName = studentId ? (state.students.find(s=>s.id===studentId)||{}).name : null;
-    document.getElementById('ai-output').innerHTML = `
-      <div class="ai-result">
-        ${sName?`<div style="margin-bottom:12px;"><span class="tag tag-orange">📌 ${esc(sName)} の記録を参照</span></div>`:''}
-        <div class="ai-sec"><div class="ai-sec-title">📚 行動の意味（愛着理論）</div><div class="ai-text">${esc(r.analysis)}</div></div>
-        ${r.past_pattern&&r.past_pattern!=='（児童未指定）'?`<div class="ai-sec"><div class="ai-sec-title">🗂 過去記録のパターン</div><div class="ai-text">${esc(r.past_pattern)}</div></div>`:''}
-        <div class="ai-sec"><div class="ai-sec-title">📖 理想的な対応</div><div class="ai-text">${esc(r.theory)}</div><div class="ai-obstacle">⚠️ 現実の障壁：${esc(r.obstacle)}</div></div>
-        <div class="ai-sec"><div class="ai-sec-title">🏫 現実的な対応</div><div class="ai-text">${esc(r.practical)}</div></div>
-        <div class="ai-sec"><div class="ai-sec-title">👩‍🏫 今日から試せる3ステップ</div><div class="ai-text">${esc(r.steps)}</div></div>
-        <div class="ai-sec"><div class="ai-sec-title">💛 担任の先生へ</div><div class="ai-text">${esc(r.self_care)}</div></div>
-        <div class="ai-sec ai-balance"><div class="ai-sec-title">⚖️ 落としどころ</div><div class="ai-text">${esc(r.balance)}</div></div>
-      </div>`;
+    var aih='<div class="ai-result">';
+    if(sName) aih+='<div style="margin-bottom:12px;"><span class="tag tag-orange">📌 '+esc(sName)+' の記録を参照</span></div>';
+    aih+='<div class="ai-sec"><div class="ai-sec-title">📚 行動の意味（愛着理論）</div><div class="ai-text">'+esc(r.analysis)+'</div></div>';
+    if(r.past_pattern&&r.past_pattern!=='（児童未指定）') aih+='<div class="ai-sec"><div class="ai-sec-title">🗂 過去記録のパターン</div><div class="ai-text">'+esc(r.past_pattern)+'</div></div>';
+    aih+='<div class="ai-sec"><div class="ai-sec-title">📖 理想的な対応</div><div class="ai-text">'+esc(r.theory)+'</div><div class="ai-obstacle">⚠️ 現実の障壁：'+esc(r.obstacle)+'</div></div>';
+    aih+='<div class="ai-sec"><div class="ai-sec-title">🏫 現実的な対応</div><div class="ai-text">'+esc(r.practical)+'</div></div>';
+    aih+='<div class="ai-sec"><div class="ai-sec-title">👩‍🏫 今日から試せる3ステップ</div><div class="ai-text">'+esc(r.steps)+'</div></div>';
+    aih+='<div class="ai-sec"><div class="ai-sec-title">💛 担任の先生へ</div><div class="ai-text">'+esc(r.self_care)+'</div></div>';
+    aih+='<div class="ai-sec ai-balance"><div class="ai-sec-title">⚖️ 落としどころ</div><div class="ai-text">'+esc(r.balance)+'</div></div>';
+    aih+='</div>';
+    document.getElementById('ai-output').innerHTML = aih;
   } catch(e) {
     document.getElementById('ai-output').innerHTML = `<div style="color:var(--warn);font-size:0.83rem;padding:12px;">エラー: ${e.message}</div>`;
   }
@@ -675,18 +672,20 @@ async function generateHandover() {
 // ── Dashboard ──
 function renderDashboard() {
   document.getElementById('dash-date').textContent = new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-box"><div class="stat-num">${state.students.length}</div><div class="stat-label">登録児童数</div></div>
-    <div class="stat-box"><div class="stat-num">${state.logs.length}</div><div class="stat-label">総記録数</div></div>
-    <div class="stat-box"><div class="stat-num">${state.logs.filter(l=>l.date>=thisMonth()).length}</div><div class="stat-label">今月の記録</div></div>
-    <div class="stat-box"><div class="stat-num">${state.logs.filter(l=>l.type==='response'&&+l.effect>=4).length}</div><div class="stat-label">効果的な対応★4↑</div></div>`;
+  document.getElementById('dash-stats').innerHTML =
+    '<div class="stat-box"><div class="stat-num">'+state.students.length+'</div><div class="stat-label">登録児童数</div></div>'+
+    '<div class="stat-box"><div class="stat-num">'+state.logs.length+'</div><div class="stat-label">総記録数</div></div>'+
+    '<div class="stat-box"><div class="stat-num">'+state.logs.filter(function(l){return l.date>=thisMonth();}).length+'</div><div class="stat-label">今月の記録</div></div>'+
+    '<div class="stat-box"><div class="stat-num">'+state.logs.filter(function(l){return l.type==="response"&&+l.effect>=4;}).length+'</div><div class="stat-label">効果的な対応★4↑</div></div>';
   const ranking = state.students.map(s=>({s,cnt:state.logs.filter(l=>l.studentId===s.id&&l.type==='behavior').length})).filter(x=>x.cnt>0).sort((a,b)=>b.cnt-a.cnt).slice(0,3);
-  document.getElementById('dash-highlight').innerHTML = ranking.length ? ranking.map(({s,cnt})=>`
-    <div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);">
-      <div style="font-weight:700;">${esc(s.name)}</div>
-      <div class="tag tag-red">困り行動 ${cnt}件</div>
-      <button class="btn btn-sm btn-secondary" style="margin-left:auto;" onclick="showTab('ai');document.getElementById('ai-student').value='${s.id}'">AI提案</button>
-    </div>`).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>';
+  document.getElementById('dash-highlight').innerHTML = ranking.length ? ranking.map(function(x){
+    var s=x.s,cnt=x.cnt;
+    return '<div style="display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--border);">'+
+      '<div style="font-weight:700;">'+esc(s.name)+'</div>'+
+      '<div class="tag tag-red">困り行動 '+cnt+'件</div>'+
+      '<button class="btn btn-sm btn-secondary" style="margin-left:auto;" onclick="showTab(\'ai\');document.getElementById(\'ai-student\').value=\''+s.id+'\'">AI提案</button>'+
+      '</div>';
+  }).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録なし</div>';
   const recent = [...state.logs].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   document.getElementById('dash-recent').innerHTML = recent.length ? recent.map(renderLogItem).join('') : '<div style="color:var(--ink2);font-size:0.8rem;">記録がありません</div>';
 }
