@@ -290,7 +290,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 <script>
 var GAS_KEY = 'inpatient_gasUrl';
 var DATA_KEY = 'inpatient_data_v1';
-var GAS_URL = localStorage.getItem(GAS_KEY) || '';
+var GAS_URL = localStorage.getItem(GAS_KEY) || 'https://script.google.com/macros/s/AKfycbzbPyMKq08Dw8rUuV8XeEVPLY83jZkuql-on-S8SKj-qDARd8O5zOWqpwwzx2d0lOT3/exec';
 var state = { students: [], logs: [] };
 var syncing = false;
 
@@ -630,7 +630,7 @@ function generateHandover() {
     return line;
   }).join('\n\n');
   document.getElementById('handover-output').innerHTML = '<div class="loading"><div class="spinner"></div>生成中…</div>';
-  gasGet('aiHandover', { profile: profileText, msg: msg || '' }).then(function(res) {
+  gasGet('aiHandover', { profile: profext, msg: msg || '' }).then(function(res) {
     if (!res.ok) throw new Error(res.error || 'エラー');
     document.getElementById('handover-output').innerHTML = '<div class="card" style="margin-top:12px;"><div class="card-title">📋 生成された引き継ぎ資料</div><div style="font-size:0.83rem;line-height:1.9;white-space:pre-wrap;">' + esc(res.result) + '</div></div>';
   }).catch(function(e) { document.getElementById('handover-output').innerHTML = '<span style="color:var(--warn);">' + e.message + '</span>'; });
